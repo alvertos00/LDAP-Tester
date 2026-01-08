@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LDAP Authentication Test</title>
+    <style>
+        :root {
+            --color-background: #0f2438;
+            --color-surface: #1a3a52;
+            --color-primary: #32b8c6;
+            --color-primary-hover: #2ea6b1;
+            --color-text: #e5e7eb;
+            --color-text-secondary: #a1a5a8;
+            --color-success: #10b981;
+            --color-error: #ef4444;
+            --color-border: #2d5a7b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: var(--color-primary);
+        }
+
+        .header p {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            background-color: rgba(26, 58, 82, 0.5);
+            color: var(--color-text);
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(50, 184, 198, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--color-text-secondary);
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: var(--color-primary);
+            color: #0f2438;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .button:hover {
+            background-color: var(--color-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(50, 184, 198, 0.3);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-section.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .result-section.error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .result-section.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result-title.success {
+            color: var(--color-success);
+        }
+
+        .result-title.error {
+            color: var(--color-error);
+        }
+
+        .result-icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .result-detail {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--color-text-secondary);
+        }
+
+        .result-detail strong {
+            color: var(--color-text);
+        }
+
+        .user-attributes {
+            margin-top: 12px;
+            padding: 12px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .user-attributes div {
+            margin: 6px 0;
+            word-break: break-all;
+        }
+
+        .info-box {
+            background-color: rgba(50, 184, 198, 0.1);
+            border: 1px solid rgba(50, 184, 198, 0.2);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            line-height: 1.5;
+        }
+
+        .info-box strong {
+            color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🔐 LDAP Test Login</h1>
+                <p>Test your LDAP authentication</p>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ LDAP Connection Tester:</strong><br>
+                This form connects to your LDAP server and validates credentials.
+            </div>
+
+            <form id="ldapForm">
+                <div class="form-group">
+                    <label class="form-label">LDAP Server URL</label>
+                    <input 
+                        type="text" 
+                        id="ldapServer" 
+                        class="form-input" 
+                        placeholder="ldap://your.ldap.ip:389"
+                        value="ldap://your.ldap.ip:389"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Base DN</label>
+                    <input 
+                        type="text" 
+                        id="baseDN" 
+                        class="form-input" 
+                        placeholder="dc=name,dc=com"
+                        value="dc=name,dc=com"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Admin DN</label>
+                    <input 
+                        type="text" 
+                        id="adminDN" 
+                        class="form-input" 
+                        placeholder="cn=admin,dc=name,dc=com"
+                        value="cn=admin,dc=name,dc=com"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Admin Password</label>
+                    <input 
+                        type="password" 
+                        id="adminPassword" 
+                        class="form-input" 
+                        placeholder="••••••••"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Test Username</label>
+                    <input 
+                        type="text" 
+                        id="testUsername" 
+                        class="form-input" 
+                        placeholder="testuser"
+                        value="testsuser"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Test Password</label>
+                    <input 
+                        type="password" 
+                        id="testPassword" 
+                        class="form-input" 
+                        placeholder="••••••••"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="button" id="submitBtn">
+                    Test LDAP Connection
+                </button>
+            </form>
+
+            <div id="resultSection" class="result-section">
+                <div class="result-title" id="resultTitle">
+                    <span class="result-icon" id="resultIcon"></span>
+                    <span id="resultTitleText">Result</span>
+                </div>
+                <div class="result-detail" id="resultDetail"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('ldapForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultSection = document.getElementById('resultSection');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultTitleText = document.getElementById('resultTitleText');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultDetail = document.getElementById('resultDetail');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const ldapServer = document.getElementById('ldapServer').value.trim();
+            const baseDN = document.getElementById('baseDN').value.trim();
+            const adminDN = document.getElementById('adminDN').value.trim();
+            const adminPassword = document.getElementById('adminPassword').value;
+            const testUsername = document.getElementById('testUsername').value.trim();
+            const testPassword = document.getElementById('testPassword').value;
+
+            if (!ldapServer || !baseDN || !adminDN || !adminPassword || !testUsername || !testPassword) {
+                showError('All fields are required');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loader"></span>Testing LDAP Connection...';
+
+            try {
+                const response = await fetch('ldap-test.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        ldapServer: ldapServer,
+                        baseDN: baseDN,
+                        adminDN: adminDN,
+                        adminPassword: adminPassword,
+                        testUsername: testUsername,
+                        testPassword: testPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success === true) {
+                    showSuccess(data.user);
+                } else if (data.error) {
+                    showError(data.error);
+                } else {
+                    showError('Unknown error occurred');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Test LDAP Connection';
+            }
+        });
+
+        function showSuccess(user) {
+            resultSection.classList.remove('error');
+            resultSection.classList.add('success', 'active');
+            resultTitle.classList.remove('error');
+            resultTitle.classList.add('success');
+            resultIcon.textContent = '✓';
+            resultTitleText.textContent = 'Authentication Successful!';
+
+            let attributesHtml = '<div class="user-attributes">';
+            attributesHtml += '<div><strong>Username:</strong> ' + escapeHtml(user.username || 'N/A') + '</div>';
+            attributesHtml += '<div><strong>DN:</strong> ' + escapeHtml(user.dn || 'N/A') + '</div>';
+            
+            if (user.attributes) {
+                attributesHtml += '<div><strong>Email:</strong> ' + escapeHtml(String(user.attributes.mail || 'N/A')) + '</div>';
+                attributesHtml += '<div><strong>CN:</strong> ' + escapeHtml(String(user.attributes.cn || 'N/A')) + '</div>';
+                attributesHtml += '<div><strong>OU:</strong> ' + escapeHtml(String(user.attributes.ou || 'N/A')) + '</div>';
+                attributesHtml += '<div><strong>Account Status:</strong> ' + escapeHtml(String(user.attributes.accountStatus || 'N/A')) + '</div>';
+                
+                if (user.attributes.objectClass) {
+                    let ocValue = user.attributes.objectClass;
+                    if (Array.isArray(ocValue)) {
+                        ocValue = ocValue.join(', ');
+                    }
+                    attributesHtml += '<div><strong>Object Classes:</strong> ' + escapeHtml(String(ocValue)) + '</div>';
+                }
+            }
+            attributesHtml += '</div>';
+
+            resultDetail.innerHTML = '<strong>User authenticated successfully!</strong>' + attributesHtml +
+                '<p style="margin-top: 12px; color: var(--color-text-secondary);">' +
+                '✓ LDAP connection successful<br>' +
+                '✓ User credentials valid<br>' +
+                '✓ User attributes retrieved' +
+                '</p>';
+        }
+
+        function showError(message) {
+            resultSection.classList.remove('success');
+            resultSection.classList.add('error', 'active');
+            resultTitle.classList.remove('success');
+            resultTitle.classList.add('error');
+            resultIcon.textContent = '✕';
+            resultTitleText.textContent = 'Connection Failed';
+
+            resultDetail.innerHTML = '<strong>Error:</strong> ' + escapeHtml(String(message)) +
+                '<div style="margin-top: 12px; padding: 12px; background-color: rgba(0,0,0,0.2); border-radius: 6px; font-size: 12px;">' +
+                '<strong>Troubleshooting:</strong>' +
+                '<ul style="margin: 8px 0 0 20px;">' +
+                '<li>Verify LDAP server IP and port are correct</li>' +
+                '<li>Check Base DN matches your LDAP directory</li>' +
+                '<li>Verify Admin DN and password are correct</li>' +
+                '<li>Ensure test username exists in LDAP</li>' +
+                '<li>Check firewall allows LDAP port (389)</li>' +
+                '</ul>' +
+                '</div>';
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
